@@ -370,7 +370,7 @@ class EvaluationDataAnalyzer:
                     'average': stats['sum'] / stats['count'],
                     'min': stats['min'],
                     'max': stats['max'],
-                    'range': stats['max'] - stats['min'] if stats['max'] and stats['min'] else 0
+                    'range': stats['max'] - stats['min'] if stats['max'] is not None and stats['min'] is not None else 0
                 }
         
         analysis['drivability_p1_distribution'] = dict(driv_p1_counter)
