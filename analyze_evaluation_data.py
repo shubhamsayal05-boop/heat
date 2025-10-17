@@ -362,6 +362,7 @@ class EvaluationDataAnalyzer:
                             stats['max'] = value
         
         # Calculate averages
+        # Calculate per-vehicle averages and statistics
         per_vehicle_stats = {}
         for vehicle, stats in vehicle_stats.items():
             if stats['count'] > 0:
@@ -370,6 +371,7 @@ class EvaluationDataAnalyzer:
                     'average': stats['sum'] / stats['count'],
                     'min': stats['min'],
                     'max': stats['max'],
+                    # Defensive check: min/max should always be set when count > 0
                     'range': stats['max'] - stats['min'] if stats['max'] is not None and stats['min'] is not None else 0
                 }
         
