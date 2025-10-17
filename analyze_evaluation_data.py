@@ -315,6 +315,7 @@ class EvaluationDataAnalyzer:
             'use_cases': [],
             'drivability_p1_distribution': {},
             'vehicle_data_summary': {},
+            'per_vehicle_statistics': {},
             'data_quality': {},
             'insights': []
         }
@@ -323,6 +324,7 @@ class EvaluationDataAnalyzer:
         driv_p1_counter = Counter()
         vehicle_data_rows = 0
         all_vehicles = set()
+        vehicle_stats = {}
         
         for row in self.data_rows:
             analysis['use_cases'].append(row['use_case'])
@@ -334,8 +336,42 @@ class EvaluationDataAnalyzer:
             # Vehicle data
             if row.get('has_vehicle_data', False):
                 vehicle_data_rows += 1
-                for vehicle in row.get('vehicle_data', {}).keys():
+                for vehicle, value in row.get('vehicle_data', {}).items():
                     all_vehicles.add(vehicle)
+                    
+                    # Initialize vehicle stats
+                    if vehicle not in vehicle_stats:
+                        vehicle_stats[vehicle] = {
+                            'count': 0,
+                            'sum': 0,
+                            'min': None,
+                            'max': None,
+                            'values': []
+                        }
+                    
+                    # Update stats if value is numeric
+                    if isinstance(value, (int, float)):
+                        stats = vehicle_stats[vehicle]
+                        stats['count'] += 1
+                        stats['sum'] += value
+                        stats['values'].append(value)
+                        
+                        if stats['min'] is None or value < stats['min']:
+                            stats['min'] = value
+                        if stats['max'] is None or value > stats['max']:
+                            stats['max'] = value
+        
+        # Calculate averages
+        per_vehicle_stats = {}
+        for vehicle, stats in vehicle_stats.items():
+            if stats['count'] > 0:
+                per_vehicle_stats[vehicle] = {
+                    'data_points': stats['count'],
+                    'average': stats['sum'] / stats['count'],
+                    'min': stats['min'],
+                    'max': stats['max'],
+                    'range': stats['max'] - stats['min'] if stats['max'] and stats['min'] else 0
+                }
         
         analysis['drivability_p1_distribution'] = dict(driv_p1_counter)
         analysis['vehicle_data_summary'] = {
@@ -343,6 +379,7 @@ class EvaluationDataAnalyzer:
             'vehicle_names': sorted(list(all_vehicles)),
             'rows_with_vehicle_data': vehicle_data_rows
         }
+        analysis['per_vehicle_statistics'] = per_vehicle_stats
         
         # Data quality metrics
         missing_driv = driv_p1_counter.get('Unspecified', 0)
@@ -432,6 +469,20 @@ class EvaluationDataAnalyzer:
                 print(f"\n  Vehicles:")
                 for vehicle in vehicle_summary['vehicle_names']:
                     print(f"    - {vehicle}")
+        
+        # Per-vehicle statistics
+        per_vehicle = analysis.get('per_vehicle_statistics', {})
+        if per_vehicle:
+            print("\n" + "-"*80)
+            print("PER-VEHICLE STATISTICS (Numeric Data)")
+            print("-"*80)
+            for vehicle, stats in sorted(per_vehicle.items()):
+                print(f"\n  {vehicle}:")
+                print(f"    Data Points: {stats['data_points']}")
+                print(f"    Average:     {stats['average']:.2f}")
+                print(f"    Min:         {stats['min']:.2f}")
+                print(f"    Max:         {stats['max']:.2f}")
+                print(f"    Range:       {stats['range']:.2f}")
         
         print("\n" + "-"*80)
         print("DATA QUALITY METRICS")
